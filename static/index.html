@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI RAG Βοηθός — Μεγάλα Δεδομένα</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+<style>
+  :root {
+    --bg-main: #0a0e17;
+    --bg-side: #111625;
+    --bg-card: #161c2d;
+    --bg-input: #1e2640;
+    --border-color: rgba(255, 255, 255, 0.08);
+    --border-glow: rgba(99, 102, 241, 0.15);
+
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --text-muted: #6b7280;
+
+    --accent: #6366f1;
+    --accent-glow: rgba(99, 102, 241, 0.4);
+    --accent-hover: #4f46e5;
+    --accent-gradient: linear-gradient(135deg, #6366f1, #4f46e5);
+
+    --user-bubble: linear-gradient(135deg, #6366f1, #4f46e5);
+    --ai-bubble: #161c2d;
+
+    --error: #ef4444;
+    --success: #10b981;
+    --warning: #f59e0b;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    overflow: hidden;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .app-container {
+    display: flex;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+  }
+
+  aside {
+    width: 320px;
+    background-color: var(--bg-side);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    flex-shrink: 0;
+    z-index: 10;
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  .logo-icon {
+    width: 38px;
+    height: 38px;
+    background: var(--accent-gradient);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px var(--accent-glow);
+  }
+
+  .logo-icon svg {
+    width: 20px;
+    height: 20px;
+    fill: white;
+  }
+
+  .logo-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ffffff, #a5b4fc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+  }
+
+  .sidebar-info {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+
+  .sidebar-info h4 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    line-height: 1.4;
+  }
+
+  .sidebar-info p {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--success);
+    box-shadow: 0 0 8px var(--success);
+    transition: all 0.3s ease;
+  }
+
+  .status-dot.offline {
+    background-color: var(--error);
+    box-shadow: 0 0 8px var(--error);
+  }
+
+  .section-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-grow: 1;
+    overflow-y: auto;
+  }
+
+  .suggestion-btn {
+    text-align: left;
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    line-height: 1.4;
+    transition: all 0.2s ease;
+  }
+
+  .suggestion-btn:hover {
+    background-color: rgba(99, 102, 241, 0.05);
+    border-color: rgba(99, 102, 241, 0.3);
+    color: var(--text-primary);
+    transform: translateY(-1px);
+  }
+
+  .clear-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 12px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: all 0.2s ease;
+  }
+
+  .clear-btn:hover {
+    background-color: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+  }
+
+  .clear-btn svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+  }
+
+  main {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    position: relative;
+    background: radial-gradient(circle at 50% 50%, #0e1424 0%, var(--bg-main) 100%);
+  }
+
+  .menu-toggle {
+    display: none;
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 100;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    color: var(--text-primary);
+  }
+
+  .chat-header {
+    height: 70px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    backdrop-filter: blur(10px);
+    background-color: rgba(10, 14, 23, 0.7);
+  }
+
+  .chat-header-title h2 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .chat-header-title p {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  .chat-messages {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .welcome-container {
+    max-width: 600px;
+    margin: auto;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+
+  .welcome-icon {
+    width: 72px;
+    height: 72px;
+    background: var(--accent-gradient);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 24px var(--accent-glow);
+  }
+
+  .welcome-icon svg {
+    width: 36px;
+    height: 36px;
+    fill: white;
+  }
+
+  .welcome-container h3 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #ffffff;
+  }
+
+  .welcome-container p {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 32px;
+  }
+
+  .message-row {
+    display: flex;
+    flex-direction: column;
+    max-width: 80%;
+    animation: fadeIn 0.3s ease forwards;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .message-row.user {
+    align-self: flex-end;
+    align-items: flex-end;
+  }
+
+  .message-row.assistant {
+    align-self: flex-start;
+    align-items: flex-start;
+  }
+
+  .sender-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .bubble {
+    padding: 16px 20px;
+    border-radius: 16px;
+    line-height: 1.6;
+    font-size: 15px;
+  }
+
+  .message-row.user .bubble {
+    background: var(--user-bubble);
+    color: white;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2);
+  }
+
+  .message-row.assistant .bubble {
+    background-color: var(--ai-bubble);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .message-row.assistant .bubble.error {
+    border-color: rgba(239, 68, 68, 0.3);
+    background-color: rgba(239, 68, 68, 0.05);
+    color: #fca5a5;
+  }
+
+  .bubble h1, .bubble h2, .bubble h3, .bubble h4 {
+    font-family: 'Outfit', sans-serif;
+    margin-top: 12px;
+    margin-bottom: 6px;
+    color: #ffffff;
+  }
+  .bubble h3 { font-size: 16px; }
+  .bubble p { margin-bottom: 10px; }
+  .bubble p:last-child { margin-bottom: 0; }
+  .bubble ul, .bubble ol {
+    margin-left: 20px;
+    margin-bottom: 10px;
+  }
+  .bubble li { margin-bottom: 4px; }
+  .bubble code {
+    background-color: rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13.5px;
+    color: #e0e7ff;
+  }
+  .bubble pre {
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 12px 0;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .bubble pre code {
+    background: transparent;
+    padding: 0;
+    color: #f3f4f6;
+  }
+
+  .sources-wrapper {
+    margin-top: 12px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .sources-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+  }
+
+  .sources-title svg {
+    width: 12px;
+    height: 12px;
+    fill: currentColor;
+  }
+
+  .sources-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .source-tag {
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-color);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: default;
+    transition: all 0.2s ease;
+  }
+
+  .source-tag:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: var(--text-primary);
+  }
+
+  .source-tag-icon {
+    width: 12px;
+    height: 12px;
+    fill: var(--accent);
+  }
+
+  .source-pages {
+    background-color: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+  }
+
+  .thinking-bubble {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 16px 20px;
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    background-color: var(--ai-bubble);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    font-size: 14px;
+    width: fit-content;
+  }
+
+  .dots {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    height: 8px;
+    margin-left: 4px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--text-secondary);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+  }
+
+  .dot:nth-child(1) { animation-delay: -0.32s; }
+  .dot:nth-child(2) { animation-delay: -0.16s; }
+
+  @keyframes bounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+    40% { transform: scale(1.1); opacity: 1; }
+  }
+
+  .composer-container {
+    padding: 24px 32px 32px;
+    background: linear-gradient(180deg, transparent 0%, var(--bg-main) 50%);
+  }
+
+  form#composer {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+    transition: all 0.3s ease;
+  }
+
+  form#composer:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--border-glow), 0 10px 25px -5px rgba(0,0,0,0.4);
+  }
+
+  #query {
+    flex-grow: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    padding: 12px 16px;
+    font-family: inherit;
+    font-size: 15px;
+  }
+
+  #query::placeholder {
+    color: var(--text-muted);
+  }
+
+  button#send {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--accent-gradient);
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  button#send:hover:not(:disabled) {
+    background: var(--accent-hover);
+    transform: scale(1.02);
+    box-shadow: 0 0 12px var(--accent-glow);
+  }
+
+  button#send:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  button#send svg {
+    width: 18px;
+    height: 18px;
+    fill: white;
+  }
+
+  @media (max-width: 850px) {
+    aside {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      transform: translateX(-100%);
+    }
+
+    aside.active {
+      transform: translateX(0);
+    }
+
+    .menu-toggle {
+      display: block;
+    }
+
+    .chat-header {
+      padding-left: 76px;
+    }
+
+    .message-row {
+      max-width: 95%;
+    }
+
+    .chat-messages {
+      padding: 20px;
+    }
+
+    .composer-container {
+      padding: 16px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-container">
+
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+        </svg>
+      </div>
+      <div class="logo-title">RAG Assistant</div>
+    </div>
+
+    <div class="sidebar-info">
+      <h4 id="bookName">Φόρτωση βιβλίου...</h4>
+      <p>Έξυπνο RAG σύστημα ερωταπαντήσεων βασισμένο στις σημειώσεις και την ύλη του βιβλίου.</p>
+      <div class="status-indicator">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Συνδεδεμένος</span>
+      </div>
+    </div>
+
+    <span class="section-title">Προτεινόμενες ερωτήσεις</span>
+    <div class="suggestions" id="suggestionsContainer">
+      <button class="suggestion-btn" onclick="askSuggestion(this.textContent)">Τι είναι τα Μεγάλα Δεδομένα;</button>
+      <button class="suggestion-btn" onclick="askSuggestion(this.textContent)">Πώς λειτουργεί το HDFS;</button>
+      <button class="suggestion-btn" onclick="askSuggestion(this.textContent)">Ποια είναι η διαφορά SQL και NoSQL;</button>
+      <button class="suggestion-btn" onclick="askSuggestion(this.textContent)">Τι είναι το MapReduce και πώς λειτουργεί;</button>
+      <button class="suggestion-btn" onclick="askSuggestion(this.textContent)">Εξήγησε το Apache Spark και τα DataFrames</button>
+    </div>
+
+    <button class="clear-btn" id="clearChatBtn">
+      <svg viewBox="0 0 24 24">
+        <path d="M19 4h-3.5l-1-1h-5l-1 1H5v2h14V4zM6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12z"/>
+      </svg>
+      Καθαρισμός συνομιλίας
+    </button>
+  </aside>
+
+  <button class="menu-toggle" id="menuToggle">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+  </button>
+
+  <main>
+    <div class="chat-header">
+      <div class="chat-header-title">
+        <h2 id="headerBookTitle">AI RAG Assistant</h2>
+        <p>Gemini 2.5 Flash + Hybrid BM25/Vector Search</p>
+      </div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+
+      <div class="welcome-container" id="welcomeState">
+        <div class="welcome-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+          </svg>
+        </div>
+        <h3>Γεια σας! Πώς μπορώ να βοηθήσω;</h3>
+        <p>Ρωτήστε με οτιδήποτε σχετικά με το βιβλίο «Τεχνολογίες για Ανάλυση Μεγάλων Δεδομένων». Μπορώ να βρω ορισμούς, να εξηγήσω αλγορίθμους και να ανατρέξω στις κατάλληλες σελίδες της βιβλιογραφίας.</p>
+      </div>
+
+    </div>
+
+    <div class="composer-container">
+      <form id="composer" autocomplete="off">
+        <input type="text" id="query" placeholder="Πληκτρολογήστε την ερώτησή σας εδώ..." required />
+        <button type="submit" id="send" disabled>
+          <svg viewBox="0 0 24 24">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </form>
+    </div>
+
+  </main>
+
+</div>
+
+<script>
+
+  const sidebar = document.getElementById('sidebar');
+  const menuToggle = document.getElementById('menuToggle');
+  const bookNameEl = document.getElementById('bookName');
+  const headerBookTitle = document.getElementById('headerBookTitle');
+  const chatMessages = document.getElementById('chatMessages');
+  const welcomeState = document.getElementById('welcomeState');
+  const composer = document.getElementById('composer');
+  const queryInput = document.getElementById('query');
+  const sendBtn = document.getElementById('send');
+  const clearChatBtn = document.getElementById('clearChatBtn');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+
+  let currentCourseKey = null;
+  let bookName = '';
+
+  if (window.marked) {
+    marked.setOptions({
+      gfm: true,
+      breaks: true,
+      headerIds: false,
+      mangle: false
+    });
+  }
+
+  menuToggle.addEventListener('click', () => {
+    sidebar.classList.toggle('active');
+  });
+
+  document.querySelector('main').addEventListener('click', () => {
+    if (window.innerWidth <= 850) {
+      sidebar.classList.remove('active');
+    }
+  });
+
+  queryInput.addEventListener('input', () => {
+    sendBtn.disabled = queryInput.value.trim() === '';
+  });
+
+  async function init() {
+    try {
+      const res = await fetch('/api/courses');
+      if (!res.ok) throw new Error('API request failed');
+      const courses = await res.json();
+
+      if (courses && courses.length > 0) {
+        currentCourseKey = courses[0].key;
+        bookName = courses[0].name;
+        bookNameEl.textContent = bookName;
+        headerBookTitle.textContent = bookName;
+
+        statusDot.classList.remove('offline');
+        statusText.textContent = 'Συνδεδεμένος';
+      }
+    } catch (err) {
+      console.error('Initialization error:', err);
+      bookNameEl.textContent = 'Σφάλμα σύνδεσης';
+      statusDot.classList.add('offline');
+      statusText.textContent = 'Αποσυνδεδεμένος';
+
+      const errorMsg = document.createElement('div');
+      errorMsg.style.color = 'var(--error)';
+      errorMsg.style.fontSize = '12px';
+      errorMsg.style.marginTop = '8px';
+      errorMsg.style.fontFamily = 'monospace';
+      errorMsg.textContent = 'Δεν ήταν δυνατή η σύνδεση με το backend API (api.py). Βεβαιωθείτε ότι ο server uvicorn τρέχει.';
+      bookNameEl.parentNode.appendChild(errorMsg);
+    }
+  }
+
+  // Fallback regex parser used if external marked library is unavailable
+  function renderMarkdown(text) {
+    if (window.marked && window.marked.parse) {
+      return marked.parse(text);
+    }
+
+    let escaped = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    escaped = escaped.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+    escaped = escaped.replace(/`(.*?)`/g, '<code>$1</code>');
+    escaped = escaped.replace(/^\* (.*?)$/gm, '<li>$1</li>');
+    escaped = escaped.replace(/(<li>.*?<\/li>)/g, '<ul>$1</ul>');
+    escaped = escaped.replace(/<\/ul>\s*<ul>/g, '');
+
+    escaped = escaped.split('\n\n').map(p => {
+      if (p.startsWith('<pre>') || p.startsWith('<ul>')) return p;
+      return `<p>${p.replace(/\n/g, '<br>')}</p>`;
+    }).join('');
+
+    return escaped;
+  }
+
+  function appendMessage(role, content, isError = false) {
+
+    welcomeState.style.display = 'none';
+
+    const row = document.createElement('div');
+    row.className = `message-row ${role}`;
+
+    const sender = document.createElement('div');
+    sender.className = 'sender-name';
+    sender.textContent = role === 'user' ? 'Εσείς' : 'RAG Assistant';
+    row.appendChild(sender);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    if (isError) {
+      bubble.classList.add('error');
+    }
+
+    if (role === 'user') {
+      bubble.textContent = content;
+    } else {
+      bubble.innerHTML = renderMarkdown(content);
+    }
+    row.appendChild(bubble);
+
+    chatMessages.appendChild(row);
+    scrollToBottom();
+
+    return row;
+  }
+
+  function appendSources(sources) {
+    if (!sources || sources.length === 0) return;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'sources-wrapper';
+
+    const title = document.createElement('div');
+    title.className = 'sources-title';
+    title.innerHTML = `
+      <svg viewBox="0 0 24 24">
+        <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+      </svg>
+      Πηγές Αναφοράς
+    `;
+    wrapper.appendChild(title);
+
+    const list = document.createElement('div');
+    list.className = 'sources-list';
+
+    sources.forEach(src => {
+      const tag = document.createElement('div');
+      tag.className = 'source-tag';
+
+      // Normalize OS path separators for cross-platform compatibility
+      const fileBasename = src.name.split('/').pop().split('\\').pop();
+
+      let pagesHtml = '';
+      if (src.pages && src.pages.length > 0) {
+        pagesHtml = `<span class="source-pages">σελ. ${src.pages.join(', ')}</span>`;
+      }
+
+      tag.innerHTML = `
+        <svg class="source-tag-icon" viewBox="0 0 24 24">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.53c-.26-.81-1-1.4-1.9-1.4h-1v-3c0-.55-.45-1-1-1h-6v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+        </svg>
+        <span>${fileBasename}</span>
+        ${pagesHtml}
+      `;
+      list.appendChild(tag);
+    });
+
+    wrapper.appendChild(list);
+
+    const lastRow = chatMessages.lastElementChild;
+    if (lastRow && lastRow.classList.contains('assistant')) {
+      lastRow.appendChild(wrapper);
+    } else {
+      chatMessages.appendChild(wrapper);
+    }
+    scrollToBottom();
+  }
+
+  function showThinking() {
+    const row = document.createElement('div');
+    row.className = 'message-row assistant';
+    row.id = 'thinkingIndicator';
+
+    const sender = document.createElement('div');
+    sender.className = 'sender-name';
+    sender.textContent = 'RAG Assistant';
+    row.appendChild(sender);
+
+    const bubble = document.createElement('div');
+    bubble.className = 'thinking-bubble';
+    bubble.innerHTML = `
+      Αναζήτηση στις σημειώσεις...
+      <div class="dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+    `;
+    row.appendChild(bubble);
+
+    chatMessages.appendChild(row);
+    scrollToBottom();
+  }
+
+  function removeThinking() {
+    const indicator = document.getElementById('thinkingIndicator');
+    if (indicator) indicator.remove();
+  }
+
+  function scrollToBottom() {
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  async function submitQuery(queryText) {
+    if (!currentCourseKey) return;
+
+    appendMessage('user', queryText);
+    showThinking();
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          course_key: currentCourseKey,
+          query: queryText
+        })
+      });
+
+      const data = await res.json();
+      removeThinking();
+
+      if (!res.ok) {
+        appendMessage('assistant', data.detail || 'Παρουσιάστηκε κάποιο σφάλμα κατά την επεξεργασία.', true);
+        return;
+      }
+
+      appendMessage('assistant', data.answer);
+      appendSources(data.sources);
+
+    } catch (err) {
+      console.error(err);
+      removeThinking();
+      appendMessage('assistant', 'Σφάλμα επικοινωνίας με το διακομιστή. Βεβαιωθείτε ότι η εφαρμογή FastAPI (api.py) εκτελείται κανονικά.', true);
+    }
+  }
+
+  composer.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const queryText = queryInput.value.trim();
+    if (!queryText) return;
+
+    queryInput.value = '';
+    sendBtn.disabled = true;
+    submitQuery(queryText);
+  });
+
+  function askSuggestion(text) {
+    if (window.innerWidth <= 850) {
+      sidebar.classList.remove('active');
+    }
+    queryInput.value = text;
+    sendBtn.disabled = false;
+    submitQuery(text);
+    queryInput.value = '';
+    sendBtn.disabled = true;
+  }
+
+  clearChatBtn.addEventListener('click', () => {
+    chatMessages.innerHTML = '';
+    welcomeState.style.display = 'flex';
+    chatMessages.appendChild(welcomeState);
+  });
+
+  init();
+</script>
+
+</body>
+</html>

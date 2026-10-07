@@ -1,0 +1,29 @@
+# Environment variables
+.env
+
+# Python & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+ENV/
+
+# IDE & System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.agents/
+
+# Database & Generated Indices
+chroma_db/
+rag_evaluation_data.json
+
+# Scratch inspection logs
+scratch_inspect*.txt
+
+# Pytest & Coverage logs
+.pytest_cache/
+*.log

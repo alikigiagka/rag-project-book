@@ -1,0 +1,13 @@
+pymupdf
+sentence-transformers
+chromadb
+rank_bm25
+numpy
+pillow
+tqdm
+ollama
+fastapi
+uvicorn
+python-dotenv
+google-genai
+pydantic
